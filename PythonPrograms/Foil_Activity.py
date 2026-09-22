@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.integrate import trapezoid
 from scipy.interpolate import interp1d
+from pathlib import Path
 from tqdm import tqdm
 import re
 
@@ -30,5 +31,41 @@ from Serber_Yield_Calculations import serber_yield
 # the appropriate calibration
 
 def extract_distance(filename: str) -> str | None:
+    """Extracts numeric distance following 'FPI_' from a filename."""
     pattern = r"FPI_(\d+(?:\.\d+)?)(?:cm)?"
     print(pattern)
+
+
+def scan_and_extract_distances(folder_path: str | Path) -> dict[str, str]:
+    """
+    Iterates through a folder, extracts the file names one by one,
+    and feeds them into extract_distance.
+
+    Returns:
+        A dictionary mapping the filename to its extracted distance.
+    """
+    folder = Path(folder_path)
+
+    if not folder.exists():
+        raise FileNotFoundError(f"Folder not found: {folder}")
+    if not folder.is_dir():
+        raise NotADirectoryError(f"Path is not a directory: {folder}")
+
+    results = {}
+
+    # Iterate through each item inside the directory
+    for item in sorted(folder.iterdir()):
+        # Ensure we only process files, skipping subfolders
+        if item.is_file():
+            filename = item.name  # Extracts just the file name (e.g. 'run1_FPI_18cm.spe')
+            
+            # Feed the filename into the extractor
+            distance = extract_distance(filename)
+
+            if distance is not None:
+                results[filename] = distance
+                print(f"File: {filename} -> Distance: {distance} cm")
+            else:
+                print(f"File: {filename} -> No distance pattern found")
+
+    return results
