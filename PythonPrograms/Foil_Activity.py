@@ -32,8 +32,11 @@ from Serber_Yield_Calculations import serber_yield
 
 def extract_distance(filename: str) -> str | None:
     """Extracts numeric distance following 'FPI_' from a filename."""
-    pattern = r"FPI_(\d+(?:\.\d+)?)(?:cm)?"
-    print(pattern)
+    # This pattern defines a group to be identified via the inner group following FP1 anf before cm
+    pattern = r"FP1_(\d+(?:\.\d+)?)(?:cm)?"
+    # clarify that the program should ignore case
+    match = re.search(pattern, filename, re.IGNORECASE)
+    return match.group(1) if match else None
 
 
 def scan_and_extract_distances(folder_path: str | Path) -> dict[str, str]:
@@ -57,7 +60,8 @@ def scan_and_extract_distances(folder_path: str | Path) -> dict[str, str]:
     for item in sorted(folder.iterdir()):
         # Ensure we only process files, skipping subfolders
         if item.is_file():
-            filename = item.name  # Extracts just the file name (e.g. 'run1_FPI_18cm.spe')
+            filename = item.name
+            print(filename)  # Extracts just the file name (e.g. 'run1_FPI_18cm.spe')
             
             # Feed the filename into the extractor
             distance = extract_distance(filename)
