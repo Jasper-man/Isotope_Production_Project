@@ -74,8 +74,9 @@ def build_initial_dataset(spectra_folder: str) -> list[dict]:
 
 # using the distances found by the previous function this file will determine the distance that will match each file in the folder and assign it to
 # the spectra which the curie program will use
+from pathlib import Path
+
 def match_calibration_files(dataset: list[dict], calib_folder: str) -> list[dict]:
-    
     calib_path = Path(calib_folder)
     
     if not calib_path.exists():
@@ -85,33 +86,58 @@ def match_calibration_files(dataset: list[dict], calib_folder: str) -> list[dict
     for row in dataset:
         distance = row["Distance_cm"]
         
-        # Skip if no distance was found for this file earlier
         if not distance:
             continue
             
-        # Search the calibration folder for a match
         matched_cal_file = None
         for cal_file in calib_path.iterdir():
             if not cal_file.is_file():
                 continue
                 
-            # This regex looks for the exact distance number, ensuring it's not part of a larger number.
-            # e.g., if distance is "18", it matches "calib_18cm" but ignores "calib_118cm".
-            # (?<!\d) means "not preceded by a digit" and (?!\d) means "not followed by a digit"
-            pattern = rf"(?<!\d){re.escape(distance)}(?!\d)"
-            print(pattern)
+            # Look specifically for files ending with "18.json", "5.5.json", etc.
+            # .lower() ensures it matches ".JSON" or ".json" safely
+            target_suffix = f"{distance}.json".lower()
             
-            if re.search(pattern, cal_file.name):
+            if cal_file.name.lower().endswith(target_suffix):
                 matched_cal_file = cal_file.name
-                break  # Found the match, stop searching the folder for this row
+                break 
         
-        # Update the dictionary with the result
         if matched_cal_file:
             row["Calibration_File"] = matched_cal_file
         else:
-            print(f"Warning: No calibration file found for distance {distance}cm (Spectrum: {row['File_Name']})")
+            print(f"Warning: No calibration file found ending in {distance}.json (Spectrum: {row['File_Name']})")
             
     return dataset
+
+def diagnose_calibration_match(dataset: list[dict], calib_folder: str):
+    calib_path = Path(calib_folder)
+    
+    print("\n--- STARTING DIAGNOSTIC RUN ---")
+    
+    for row in dataset:
+        distance = row["Distance_cm"]
+        if not distance:
+            continue
+            
+        print(f"\nLooking for distance: {repr(distance)}")
+        
+        for cal_file in calib_path.iterdir():
+            if not cal_file.is_file():
+                continue
+                
+            target_suffix = f"{distance}.json".lower()
+            actual_name = cal_file.name.lower()
+            
+            # This prints the exact comparison happening in the background
+            print(f"  Checking file: {repr(actual_name)} | Does it end with {repr(target_suffix)}?")
+            
+            if actual_name.endswith(target_suffix):
+                print(f"  >>> SUCCESS: Matched {cal_file.name}")
+                break 
+
+    print("--- END DIAGNOSTIC RUN ---\n")
+    return dataset
+
 
 # The curie part of the analysis that records the timestamps, livetimes, counts and uncertainty for a desired isotope
 def calculate_gamma_counts(dataset: list[dict], spectra_folder: str, calib_folder: str, isotope: str) -> list[dict]:
@@ -197,6 +223,7 @@ def save_to_csv(dataset: list[dict], output_filename: str):
 def Data_Analysis(spectra_folder: str, calib_folder: str, isotope: str, output_filename: str):
 
     dataset = build_initial_dataset(spectra_folder)
+    # diagnose_calibration_match(dataset, calib_folder)
     match_calibration_files(dataset, calib_folder)
     calculate_gamma_counts(dataset,spectra_folder,calib_folder,isotope)
     save_to_csv(dataset,output_filename)
@@ -205,7 +232,7 @@ def Data_Analysis(spectra_folder: str, calib_folder: str, isotope: str, output_f
 
 
 spectra_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Raw Spectra/25 MeV Protons/FP1'
-calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Curie_Calibrations'
+calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Curie_Calibrations/Det2'
 isotope = '196AU'
 output_filename = 'Data_Analysis_TEST'
 
