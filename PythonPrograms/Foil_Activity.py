@@ -109,6 +109,7 @@ def match_calibration_files(dataset: list[dict], calib_folder: str) -> list[dict
             
     return dataset
 
+# diagnosis function for matching the data to a calib file
 def diagnose_calibration_match(dataset: list[dict], calib_folder: str):
     calib_path = Path(calib_folder)
     
@@ -137,6 +138,26 @@ def diagnose_calibration_match(dataset: list[dict], calib_folder: str):
 
     print("--- END DIAGNOSTIC RUN ---\n")
     return dataset
+
+# This is another helper function that will pull the counts out of the pandas data frame from sp.peaks and return the number and uncertainty
+def get_isotope_counts(sp, target_isotope: str):
+    # sp.peaks is a pandas DataFrame.
+    # We filter it to only keep rows where the 'isotope' column matches your target.
+    matched_rows = sp.peaks[sp.peaks['isotope'] == target_isotope]
+    
+    if matched_rows.empty:
+        return None
+        
+    # Note: Some isotopes (like 60Co) emit multiple gamma rays, 
+    # so they will have multiple peaks (rows) in this table.
+    
+    # If you just want the counts from the strongest/first peak found:
+    raw_counts = matched_rows.iloc[0]['counts']
+    
+    # Or, if you need the uncertainty too:
+    unc = matched_rows.iloc[0]['unc_counts']
+    
+    return int(raw_counts), int(unc)
 
 
 # The curie part of the analysis that records the timestamps, livetimes, counts and uncertainty for a desired isotope
@@ -176,8 +197,10 @@ def calculate_gamma_counts(dataset: list[dict], spectra_folder: str, calib_folde
             
             # 3. Extract the data you need from the curie Spectrum object
             # Replace these properties with curie's exact attribute names
-            counts = sp.isotopes[isotope].counts
-            uncertainty = sp.isotopes[isotope].counts_unc
+
+            sp.isotopes = [isotope]
+            # counts = sp.isotopes[isotope].counts
+            # uncertainty = sp.isotopes[isotope].counts_unc
             run_time = sp.real_time
             timestamp = sp.start_time  
 
@@ -237,4 +260,5 @@ isotope = '196AU'
 output_filename = 'Data_Analysis_TEST'
 
 Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
+
 
