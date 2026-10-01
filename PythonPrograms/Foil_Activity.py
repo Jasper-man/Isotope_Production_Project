@@ -148,7 +148,7 @@ def calculate_gamma_counts(dataset: list[dict], spectra_folder: str, calib_folde
     spectra_path = Path(spectra_folder)
     calib_path = Path(calib_folder)
 
-    for row in dataset:
+    for row in tqdm(dataset):
         spec_file = row["File_Name"]
         calib_file = row["Calibration_File"]
 
