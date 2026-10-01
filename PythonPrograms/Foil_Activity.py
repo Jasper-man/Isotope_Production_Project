@@ -99,6 +99,7 @@ def match_calibration_files(dataset: list[dict], calib_folder: str) -> list[dict
             # e.g., if distance is "18", it matches "calib_18cm" but ignores "calib_118cm".
             # (?<!\d) means "not preceded by a digit" and (?!\d) means "not followed by a digit"
             pattern = rf"(?<!\d){re.escape(distance)}(?!\d)"
+            print(pattern)
             
             if re.search(pattern, cal_file.name):
                 matched_cal_file = cal_file.name
@@ -203,4 +204,10 @@ def Data_Analysis(spectra_folder: str, calib_folder: str, isotope: str, output_f
     return "Data Analysis Complete"
 
 
+spectra_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Raw Spectra/25 MeV Protons/FP1'
+calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Curie_Calibrations'
+isotope = '196AU'
+output_filename = 'Data_Analysis_TEST'
+
+Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
 
