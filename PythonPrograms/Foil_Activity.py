@@ -63,6 +63,7 @@ def build_initial_dataset(spectra_folder: str) -> list[dict]:
                 "Distance_cm": distance,
                 "Calibration_File": None,  # To be filled by calibration function
                 "Isotope": None,           # to be filled by the counting function
+                "Chi2": None,
                 "Gamma_Counts": None,      # To be filled by counting function
                 "Uncertainty": None,        # To be filled by counting function
                 "Run_Time_s": None,        # To be filled by counting function
@@ -139,25 +140,6 @@ def diagnose_calibration_match(dataset: list[dict], calib_folder: str):
     print("--- END DIAGNOSTIC RUN ---\n")
     return dataset
 
-# This is another helper function that will pull the counts out of the pandas data frame from sp.peaks and return the number and uncertainty
-def get_isotope_counts(sp, target_isotope: str):
-    # sp.peaks is a pandas DataFrame.
-    # We filter it to only keep rows where the 'isotope' column matches your target.
-    matched_rows = sp.peaks[sp.peaks['isotope'] == target_isotope]
-    
-    if matched_rows.empty:
-        return None
-        
-    # Note: Some isotopes (like 60Co) emit multiple gamma rays, 
-    # so they will have multiple peaks (rows) in this table.
-    
-    # If you just want the counts from the strongest/first peak found:
-    raw_counts = matched_rows.iloc[0]['counts']
-    
-    # Or, if you need the uncertainty too:
-    unc = matched_rows.iloc[0]['unc_counts']
-    
-    return int(raw_counts), int(unc)
 
 
 # The curie part of the analysis that records the timestamps, livetimes, counts and uncertainty for a desired isotope
@@ -185,33 +167,28 @@ def calculate_gamma_counts(dataset: list[dict], spectra_folder: str, calib_folde
         try:
             # 1. Load the Calibration and Spectrum using curie
             # (Note: Check Curie's API for the exact argument to attach the calibration)
-            cb = ci.Calibration(full_calib_path)
             sp = ci.Spectrum(full_spec_path)
+            sp.cb = full_calib_path
+            sp.isotopes = [isotope]
             
             # Attach the calibration to the spectrum
-            sp.cb = cb 
             
             # 2. Tell curie to fit the peaks for your target isotope
             # (Adjust to match Curie's specific fitting method, e.g., sp.fit_peaks())
-            sp.fit_peaks(isotope=isotope) 
+            sp.fit_peaks(fixed_energy = False) 
             
             # 3. Extract the data you need from the curie Spectrum object
             # Replace these properties with curie's exact attribute names
 
-            sp.isotopes = [isotope]
-            # counts = sp.isotopes[isotope].counts
-            # uncertainty = sp.isotopes[isotope].counts_unc
-            run_time = sp.real_time
-            timestamp = sp.start_time  
-
             # 4. Inject the results DIRECTLY back into the dictionary
-            row["Gamma_Counts"] = counts
-            row["Isotope"] = isotope
-            row["Run_Time_s"] = run_time
-            row["Uncertainty"] = uncertainty
-            row["Timestamp_s"] = timestamp
+            row["Gamma_Counts"] = sp.peaks.iloc[0]['counts']
+            row["Isotope"] = sp.peaks.iloc[0]['isotope']
+            row["Run_Time_s"] = sp.peaks.iloc[0]['live_time']
+            row["Uncertainty"] = sp.peaks.iloc[0]['unc_counts']
+            row["Timestamp_s"] = sp.peaks.iloc[0]['start_time']
+            row["Chi2"] = sp.peaks.iloc[0]['chi2']
             
-            print(f"Success: {spec_file} -> {counts} counts for {isotope}")
+            print(f"Success: {spec_file} -> completed")
 
         except Exception as e:
             # If curie fails (e.g., peak not found, file corrupted), catch the error
