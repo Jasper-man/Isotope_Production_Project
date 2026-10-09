@@ -14,7 +14,7 @@ import csv
 # home-made functions
 from abnormal_shape_SA import squash_beam
 from decay_function import decay_function
-from Serber_Yield_Calculations import serber_yield
+# from PythonPrograms.Serber_Proton_Yield_Calculations import serber_yield
 
 
 """
@@ -65,6 +65,7 @@ def build_initial_dataset(spectra_folder: str) -> list[dict]:
                 "Isotope": None,           # to be filled by the counting function
                 "Chi2": None,
                 "Gamma_Counts": None,      # To be filled by counting function
+                "Energy": None,             # To be filled by counting function
                 "Uncertainty": None,        # To be filled by counting function
                 "Run_Time_s": None,        # To be filled by counting function
                 "Timestamp_s": None       # To be filled by the counting function
@@ -182,6 +183,7 @@ def calculate_gamma_counts(dataset: list[dict], spectra_folder: str, calib_folde
 
             # 4. Inject the results DIRECTLY back into the dictionary
             row["Gamma_Counts"] = sp.peaks.iloc[0]['counts']
+            row["Energy"] = sp.peaks.iloc[0]['energy']
             row["Isotope"] = sp.peaks.iloc[0]['isotope']
             row["Run_Time_s"] = sp.peaks.iloc[0]['live_time']
             row["Uncertainty"] = sp.peaks.iloc[0]['unc_counts']
@@ -236,6 +238,133 @@ calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/C
 isotope = '196AU'
 output_filename = 'Data_Analysis_TEST'
 
+# Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
+
+
+
+spectra_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Raw Spectra/25 MeV Protons/FP1'
+calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Curie_Calibrations/Det2'
+isotope = '116IN'
+output_filename = '116In_Counts_FP1'
+
 Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
 
 
+spectra_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Raw Spectra/25 MeV Protons/FP1'
+calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Curie_Calibrations/Det2'
+isotope = '57NI'
+output_filename = '57Ni_Counts_FP1'
+
+Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
+
+
+
+"""
+This section will use the csv created to build the decay equation and plot the decay based on the timestamps in the data
+"""
+
+# 1. Define the mathematical decay model
+def decay_equation(t, A0, decay_constant):
+    """
+    t: time elapsed since the reference point (in seconds)
+    A0: Activity at t=0
+    decay_constant: lambda (ln(2) / half-life)
+    """
+    return A0 * np.exp(-decay_constant * t)
+
+def plot_and_fit_decay(csv_filepath: str, reference_time_str: str, target_distance: float = None):
+    # 2. Load the data
+    df = pd.read_csv(csv_filepath)
+    
+    # Optional: Filter for a specific distance if your CSV has multiple distances
+    if target_distance:
+        df = df[df["Distance_cm"] == target_distance]
+        if df.empty:
+            print(f"No data found for distance {target_distance}cm")
+            return
+
+    # 3. Convert times to usable numbers
+    # Parse the strings into actual datetime objects
+    df['Start_Time'] = pd.to_datetime(df['Start_Time'])
+    ref_time = pd.to_datetime(reference_time_str)
+    
+    # Calculate exactly how many seconds passed between your reference time and the start of each count
+    df['Elapsed_Seconds'] = (df['Start_Time'] - ref_time).dt.total_seconds()
+    
+    # 4. Calculate Count Rates (Activity)
+    # You must divide by Live_Time_s, otherwise longer runs artificially look like higher activity
+    df['Count_Rate'] = df['Gamma_Counts'] / df['Live_Time_s']
+    df['Rate_Uncertainty'] = df['Uncertainty'] / df['Live_Time_s']
+    
+    # Drop any rows where curie failed to find a peak (NaN values)
+    df = df.dropna(subset=['Count_Rate', 'Elapsed_Seconds'])
+    
+    # Extract as standard numpy arrays for the math functions
+    t_data = df['Elapsed_Seconds'].values
+    y_data = df['Count_Rate'].values
+    y_err = df['Rate_Uncertainty'].values
+    
+    # 5. Fit the Curve
+    # p0 is our initial guess to help the algorithm: [guess_for_A0, guess_for_lambda]
+    initial_guess = [y_data.max(), 1e-4]
+    
+    try:
+        # curve_fit returns the optimal parameters (popt) and the covariance/error matrix (pcov)
+        popt, pcov = curve_fit(
+            decay_equation, 
+            t_data, 
+            y_data, 
+            sigma=y_err,         # Weigh the fit using your uncertainties
+            absolute_sigma=True, # Treats the uncertainties as real physical errors, not relative weights
+            p0=initial_guess
+        )
+        
+        A0_fit, lambda_fit = popt
+        A0_err, lambda_err = np.sqrt(np.diag(pcov)) # Extract the +/- error of the fit
+        
+        half_life_seconds = np.log(2) / lambda_fit
+        
+        print("\n--- FIT RESULTS ---")
+        print(f"Reference Time (t=0): {ref_time}")
+        print(f"Calculated Activity at t=0 (A0): {A0_fit:.2f} +/- {A0_err:.2f} counts/sec")
+        print(f"Calculated Half-Life: {half_life_seconds / 3600:.2f} hours")
+        print("-------------------\n")
+        
+    except Exception as e:
+        print(f"Curve fitting failed: {e}")
+        return
+
+    # 6. Plotting
+    plt.figure(figsize=(10, 6))
+    
+    # Plot the raw data with error bars
+    plt.errorbar(t_data, y_data, yerr=y_err, fmt='o', label='Measured Data', color='black', capsize=5)
+    
+    # Generate smooth time points from t=0 up to your last measurement
+    t_smooth = np.linspace(0, t_data.max(), 500)
+    
+    # Plot the fitted curve
+    plt.plot(t_smooth, decay_equation(t_smooth, A0_fit, lambda_fit), 
+             label=f'Fit: $A_0$ = {A0_fit:.1f}\n$T_{{1/2}}$ = {half_life_seconds/3600:.1f} hrs', 
+             color='red', linestyle='--')
+    
+    # Formatting
+    plt.axvline(x=0, color='gray', linestyle=':', label='Reference Time (t=0)')
+    plt.xlabel('Seconds since Reference Time')
+    plt.ylabel('Count Rate (Counts / Live Time)')
+    plt.title('Isotope Decay Curve Extrapolation')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    
+    plt.show()
+
+# --- How to run it ---
+# if __name__ == "__main__":
+#     csv_file = "60Co_analysis_results.csv" 
+    
+#     # Put the exact date/time you want to back-calculate to. 
+#     # Use standard ISO format: YYYY-MM-DD HH:MM:SS
+#     my_reference_time = "2026-09-03 08:00:00"
+    
+#     plot_and_fit_decay(csv_file, my_reference_time, target_distance=18.0)
