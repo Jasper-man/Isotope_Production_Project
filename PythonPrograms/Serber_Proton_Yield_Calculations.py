@@ -175,39 +175,41 @@ print(f"Total Raw Calculated Yield: {total_calculated_yield}")
 total_simulated_particles = 100000 
 yield_scaling_factor = total_simulated_particles / total_calculated_yield 
 
-with open("TRIM.DAT", "w") as file:
-    # Write the SRIM header (SRIM requires a specific header format)
-    file.write("==> SRIM-2013 TRIM.DAT File <==\n")
-    file.write("Ion_E(eV) X(A) Y(A) Z(A) CosX CosY CosZ\n")
+# ==========================================
+# 4. GENERATE TRIM.DAT FILE
+# ==========================================
+
+print("Writing TRIM.DAT file...")
+particles_written = 0
+
+with open("TRIM.DAT", "w", newline='\r\n') as file:
+    # TRIM requires exactly 10 lines of header comments
+    file.write("1- Custom Proton Simulation\n")
+    file.write("2- Generated via Python\n")
+    file.write("3- \n")
+    file.write("4- \n")
+    file.write("5- \n")
+    file.write("6- \n")
+    file.write("7- \n")
+    file.write("8- Protons into Beryllium\n") # TRIM uses line 8 for output files
+    file.write("9- Data Table line consist of: EventName(5 char)+8 numbers\n")
+    file.write("10-Name  Z  Energy(eV)  X(A)  Y(A)  Z(A)  CosX  CosY  CosZ\n")
     
-    # Loop over your calculated depth/deuteron energy array
     for depth_cm, E_d in zip(depth_array, deuteron_energies):
+        depth_angstroms = depth_cm * 1e8  
         
-        # Loop over possible emitted proton energies
         for E_p in proton_energy_grid:
+            E_p_eV = E_p * 1e6  
             
-            # Loop over your angles
             for theta_deg in angular_grid:
-                
-                # 1. Calculate the physics yield for this specific bin
-                # (This is where P_tht does its work inside the math)
                 bin_yield = calculate_modified_serber_yield(E_d, E_p, theta_deg)
-                
-                # 2. Determine how many protons to simulate for this bin
                 num_particles = int(bin_yield * yield_scaling_factor)
                 
-                # 3. Write individual particles to the file
                 for _ in range(num_particles):
-                    # Get 3D aiming vectors for this specific angle
                     cosX, cosY, cosZ = calculate_directional_cosines(theta_deg)
-                    
-                    # Convert units for SRIM (MeV to eV, cm to Angstroms)
-                    E_p_eV = E_p * 1e6
-                    depth_angstroms = depth_cm * 1e8
-                    
-                    # Write the row: Energy, X, Y, Z, CosX, CosY, CosZ
-                    row = f"{E_p_eV:.1f} {depth_angstroms:.1f} 0.0 0.0 {cosX:.5f} {cosY:.5f} {cosZ:.5f}\n"
+                    # "H    " provides the required 5-character name, "1" is the atomic number
+                    row = f"H     1 {E_p_eV:.1f} {depth_angstroms:.1f} 0.0 0.0 {cosX:.5f} {cosY:.5f} {cosZ:.5f}\n"
                     file.write(row)
+                    particles_written += 1
 
-
-
+print(f"Success! {particles_written} protons written to TRIM.DAT.")
