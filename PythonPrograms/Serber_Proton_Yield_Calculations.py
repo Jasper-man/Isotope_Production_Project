@@ -162,10 +162,17 @@ angular_grid = np.arange(tht_min, tht_max + d_tht, d_tht)
 # Run a pre-computation loop over all grids
 total_calculated_yield = 0.0
 
-for E_d in deuteron_energies:
+# Define the physical limit of the target
+target_thickness_cm = 0.4  # 4mm Beryllium sheet
+
+# Note: We added depth_cm to the zip here so we can track when it exits the block
+for E_d, depth_cm in zip(deuteron_energies, depth_array):
+    # Stop calculating if the deuteron passes through the sheet
+    if depth_cm > target_thickness_cm:
+        break
+        
     for E_p in proton_energy_grid:
         for theta_deg in angular_grid:
-            
             # Add the raw physics probability of this specific bin to the grand total
             total_calculated_yield += calculate_modified_serber_yield(E_d, E_p, theta_deg)
 
@@ -191,13 +198,26 @@ with open("TRIM.DAT", "w", newline='\r\n') as file:
     file.write("5- \n")
     file.write("6- \n")
     file.write("7- \n")
-    file.write("8- Protons into Beryllium\n") # TRIM uses line 8 for output files
+    file.write("8- Protons into Beryllium\n")
     file.write("9- Data Table line consist of: EventName(5 char)+8 numbers\n")
     file.write("10-Name  Z  Energy(eV)  X(A)  Y(A)  Z(A)  CosX  CosY  CosZ\n")
     
+    target_thickness_A = target_thickness_cm * 1e8
+
     for depth_cm, E_d in zip(depth_array, deuteron_energies):
+        # Stop generating protons if the deuteron is outside the sheet
+        if depth_cm > target_thickness_cm:
+            break
+            
         depth_angstroms = depth_cm * 1e8  
         
+        # FIX 1: Shift the start position 1.0 Angstrom deep to avoid the X=0.0 boundary bug
+        safe_depth = depth_angstroms + 1.0 
+        
+        # FIX 3: Back-wall bug prevention. Do not spawn exactly on the back boundary.
+        if safe_depth >= target_thickness_A:
+            safe_depth = target_thickness_A - 1.0
+            
         for E_p in proton_energy_grid:
             E_p_eV = E_p * 1e6  
             
@@ -207,9 +227,14 @@ with open("TRIM.DAT", "w", newline='\r\n') as file:
                 
                 for _ in range(num_particles):
                     cosX, cosY, cosZ = calculate_directional_cosines(theta_deg)
-                    # "H    " provides the required 5-character name, "1" is the atomic number
-                    row = f"H     1 {E_p_eV:.1f} {depth_angstroms:.1f} 0.0 0.0 {cosX:.5f} {cosY:.5f} {cosZ:.5f}\n"
+                    
+                    # FIX 2: Strip out "negative zeros" (-0.00000) that crash legacy VB6
+                    cosX = 0.0 if abs(cosX) < 1e-6 else cosX
+                    cosY = 0.0 if abs(cosY) < 1e-6 else cosY
+                    cosZ = 0.0 if abs(cosZ) < 1e-6 else cosZ
+                    
+                    row = f"H     1 {E_p_eV:.1f} {safe_depth:.1f} 0.0 0.0 {cosX:.5f} {cosY:.5f} {cosZ:.5f}\n"
                     file.write(row)
                     particles_written += 1
-
+                    
 print(f"Success! {particles_written} protons written to TRIM.DAT.")
