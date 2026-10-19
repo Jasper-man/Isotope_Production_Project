@@ -2,17 +2,19 @@ import numpy as np
 from numpy import trapezoid as trapz
 
 def calculate_modified_serber_yield(E_d, E_p, theta_deg, amu=9.0, z=4.0):
-    # 1. Incoming Deuteron Coulomb Barrier (from original script)
+    # Deuteron binding energy in MeV
+    E_B = 2.225
+
+    # 1. Incoming Deuteron Coulomb Barrier
     E_c_in = (z * 197 / 137.0) / (1.57 + 1.25 * amu**0.333) - 0.9
     
-    # If the deuteron energy is below the barrier, no breakup occurs
-    if E_d <= E_c_in:
+    # THRESHOLD FIX: Deuteron must overcome BOTH the Coulomb barrier and binding energy
+    if E_d <= (E_c_in + E_B):
         return 0.0
         
-    # 2. Outgoing Proton Coulomb Barrier (Approximate for Beryllium)
-    # Protons must overcome this to escape the parent nucleus
+    # 2. Outgoing Proton Energy Limits (Coulomb minimum & Conservation of Energy maximum)
     E_c_out = 1.5 
-    if E_p <= E_c_out:
+    if E_p <= E_c_out or E_p >= (E_d - E_B):
         return 0.0
 
     # 3. Kalbach Total Cross-Section (Using outer Beryllium defaults)
@@ -22,15 +24,17 @@ def calculate_modified_serber_yield(E_d, E_p, theta_deg, amu=9.0, z=4.0):
 
     # 4. Serber Energy Probability (Symmetric direct breakup)
     def P_En(E_p, E_d, E_c):
-        w = 1.0 * 0.385 * 2.225
-        eps = E_d - E_c
+        w = 1.0 * 0.385 * E_B
+        # Subtract binding energy from available kinetic energy
+        eps = E_d - E_c - E_B
         x = eps * w / ((E_p - 0.5 * eps)**2 + eps * w)**1.5
         sm = 1.0 + eps / (eps**2 + 4.0 * eps * w)**0.5
         return x / sm
 
     # 5. Serber Angular Probability
     def P_tht(tht, E_d, E_c):
-        tht_0 = 1.0 * 0.812 * np.sqrt(2.225 / (E_d - E_c)) * (1.0 - ((E_d - E_c) / 8E3))
+        eps = E_d - E_c - E_B
+        tht_0 = 1.0 * 0.812 * np.sqrt(E_B / eps) * (1.0 - (eps / 8E3))
         x = tht_0 / (tht_0**2 + tht**2)**1.5
         sm = np.pi / (tht_0 * np.sqrt(tht_0**2 + np.pi**2))
         return x / sm
@@ -236,5 +240,5 @@ with open("TRIM.DAT", "w", newline='\r\n') as file:
                     row = f"H     1 {E_p_eV:.1f} {safe_depth:.1f} 0.0 0.0 {cosX:.5f} {cosY:.5f} {cosZ:.5f}\n"
                     file.write(row)
                     particles_written += 1
-                    
+
 print(f"Success! {particles_written} protons written to TRIM.DAT.")
