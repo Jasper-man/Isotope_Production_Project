@@ -144,7 +144,12 @@ def diagnose_calibration_match(dataset: list[dict], calib_folder: str):
 
 
 # The curie part of the analysis that records the timestamps, livetimes, counts and uncertainty for a desired isotope
-def calculate_gamma_counts(dataset: list[dict], spectra_folder: str, calib_folder: str, isotope: str) -> list[dict]:
+def calculate_gamma_counts(dataset: list[dict], 
+                           spectra_folder: str, 
+                           calib_folder: str, 
+                           isotope: str, 
+                           target_energy: float = None, 
+                           energy_tol: float = 1.0) -> list[dict]:
     """
     Uses the curie library to calculate counts for a specific isotope.
     Updates the dataset in memory.
@@ -176,8 +181,23 @@ def calculate_gamma_counts(dataset: list[dict], spectra_folder: str, calib_folde
             
             # 2. Tell curie to fit the peaks for your target isotope
             # (Adjust to match Curie's specific fitting method, e.g., sp.fit_peaks())
-            sp.fit_peaks(fixed_energy = False) 
+            sp.fit_peaks() 
             
+            # Isolate The specific gamma
+            if target_energy is not None:
+                matched_peaks = sp.peaks[np.isclose(sp.peaks['energy'], target_energy, atol=energy_tol)]
+                if matched_peaks.empty:
+                    print(
+                        f"Warning: Target energy {target_energy} keV not found in {spec_file}. "
+                        f"Fitted energies: {sp.peaks['energy'].tolist()}"
+                    )
+                    continue
+                # If multiple lines are within tolerance, pick the closest one
+                closest_idx = (matched_peaks['energy'] - target_energy).abs().idxmin()
+                peak_row = matched_peaks.loc[closest_idx]
+            else:
+                peak_row = sp.peaks.iloc[0]
+
             # 3. Extract the data you need from the curie Spectrum object
             # Replace these properties with curie's exact attribute names
 
@@ -222,12 +242,12 @@ def save_to_csv(dataset: list[dict], output_filename: str):
 
 
 # The function that puts all of the components together into one clean workflow
-def Data_Analysis(spectra_folder: str, calib_folder: str, isotope: str, output_filename: str):
+def Data_Analysis(spectra_folder: str, calib_folder: str, isotope: str, output_filename: str, target_energy: float = None, energy_tol: float = 1.0):
 
     dataset = build_initial_dataset(spectra_folder)
     # diagnose_calibration_match(dataset, calib_folder)
     match_calibration_files(dataset, calib_folder)
-    calculate_gamma_counts(dataset,spectra_folder,calib_folder,isotope)
+    calculate_gamma_counts(dataset,spectra_folder,calib_folder,isotope,target_energy,energy_tol)
     save_to_csv(dataset,output_filename)
 
     return "Data Analysis Complete"
@@ -258,6 +278,28 @@ output_filename = '57Ni_Counts_FP1'
 Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
 
 
+spectra_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Raw Spectra/25 MeV Protons/FP1'
+calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Curie_Calibrations/Det2'
+isotope = '196AU'
+output_filename = '116In_Counts_FP1'
+
+Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
+
+
+spectra_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Raw Spectra/25 MeV Protons/FP1'
+calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Curie_Calibrations/Det2'
+isotope = '89ZR'
+output_filename = '89ZR_Counts_FP1'
+
+Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
+
+
+spectra_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Raw Spectra/25 MeV Protons/FP1'
+calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Curie_Calibrations/Det2'
+isotope = '116IN'
+output_filename = '116In_Counts_FP1'
+
+Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
 
 """
 This section will use the csv created to build the decay equation and plot the decay based on the timestamps in the data
