@@ -177,7 +177,8 @@ def calculate_gamma_counts(dataset: list[dict],
             sp.cb = full_calib_path
             sp.isotopes = [isotope]
             
-            # Attach the calibration to the spectrum
+            # Adjustments to the peak fitting, lowering the peak to bg threshold
+            sp.fit_config = {'SNR_min':2}
             
             # 2. Tell curie to fit the peaks for your target isotope
             # (Adjust to match Curie's specific fitting method, e.g., sp.fit_peaks())
@@ -256,26 +257,26 @@ def Data_Analysis(spectra_folder: str, calib_folder: str, isotope: str, output_f
 spectra_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Raw Spectra/25 MeV Protons/FP1'
 calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Curie_Calibrations/Det2'
 isotope = '196AU'
-output_filename = 'Data_Analysis_TEST'
+output_filename = '196Au_Counts_FP1_355keV.csv'
 
-# Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
+Data_Analysis(spectra_folder,calib_folder,isotope,output_filename,355)
 
 
 
 spectra_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Raw Spectra/25 MeV Protons/FP1'
 calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Curie_Calibrations/Det2'
 isotope = '116IN'
-output_filename = '116In_Counts_FP1'
+output_filename = '116In_Counts_FP1_463keV.csv'
 
-Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
+# Data_Analysis(spectra_folder,calib_folder,isotope,output_filename,463.0)
 
 
 spectra_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Raw Spectra/25 MeV Protons/FP1'
 calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Curie_Calibrations/Det2'
 isotope = '57NI'
-output_filename = '57Ni_Counts_FP1'
+output_filename = '57Ni_Counts_FP1_127keV'
 
-Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
+# Data_Analysis(spectra_folder,calib_folder,isotope,output_filename,127.164)
 
 
 spectra_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Raw Spectra/25 MeV Protons/FP1'
@@ -283,7 +284,7 @@ calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/C
 isotope = '196AU'
 output_filename = '116In_Counts_FP1'
 
-Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
+# Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
 
 
 spectra_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Raw Spectra/25 MeV Protons/FP1'
@@ -291,7 +292,7 @@ calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/C
 isotope = '89ZR'
 output_filename = '89ZR_Counts_FP1'
 
-Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
+# Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
 
 
 spectra_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/Raw Spectra/25 MeV Protons/FP1'
@@ -299,7 +300,7 @@ calib_folder = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/data/C
 isotope = '116IN'
 output_filename = '116In_Counts_FP1'
 
-Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
+# Data_Analysis(spectra_folder,calib_folder,isotope,output_filename)
 
 """
 This section will use the csv created to build the decay equation and plot the decay based on the timestamps in the data
