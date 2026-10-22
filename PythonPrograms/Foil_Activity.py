@@ -184,6 +184,11 @@ def calculate_gamma_counts(dataset: list[dict],
             # (Adjust to match Curie's specific fitting method, e.g., sp.fit_peaks())
             sp.fit_peaks() 
             
+            # quick check to see if the peaks we are looking for exsist above SNR = 2
+            if sp.peaks is None or sp.peaks.empty:
+                print(f"Warning: No peaks fit for {isotope} in {spec_file}.")
+                continue
+              
             # Isolate The specific gamma
             if target_energy is not None:
                 matched_peaks = sp.peaks[np.isclose(sp.peaks['energy'], target_energy, atol=energy_tol)]
@@ -203,13 +208,13 @@ def calculate_gamma_counts(dataset: list[dict],
             # Replace these properties with curie's exact attribute names
 
             # 4. Inject the results DIRECTLY back into the dictionary
-            row["Gamma_Counts"] = sp.peaks.iloc[0]['counts']
-            row["Energy"] = sp.peaks.iloc[0]['energy']
-            row["Isotope"] = sp.peaks.iloc[0]['isotope']
-            row["Run_Time_s"] = sp.peaks.iloc[0]['live_time']
-            row["Uncertainty"] = sp.peaks.iloc[0]['unc_counts']
-            row["Timestamp_s"] = sp.peaks.iloc[0]['start_time']
-            row["Chi2"] = sp.peaks.iloc[0]['chi2']
+            row["Gamma_Counts"] = peak_row['counts']
+            row["Energy"] = peak_row['energy']
+            row["Isotope"] = peak_row['isotope']
+            row["Run_Time_s"] = peak_row['live_time']
+            row["Uncertainty"] = peak_row['unc_counts']
+            row["Timestamp_s"] = peak_row['start_time']
+            row["Chi2"] = peak_row['chi2']
             
             print(f"Success: {spec_file} -> completed")
 
