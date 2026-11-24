@@ -12,8 +12,8 @@ import re
 import csv
 
 # home-made functions
-from abnormal_shape_SA import squash_beam
-from decay_function import decay_function
+from Neutron_Flux_Analysis.abnormal_shape_SA import squash_beam
+from Neutron_Flux_Analysis.decay_function import decay_function
 # from PythonPrograms.Serber_Proton_Yield_Calculations import serber_yield
 
 
