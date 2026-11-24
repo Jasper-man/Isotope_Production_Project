@@ -1,4 +1,4 @@
-from Neutron_Flux_Analysis.abnormal_shape_SA import squash_beam as solid_angle
+from abnormal_shape_SA import squash_beam as solid_angle
 import numpy as np
 from tqdm import tqdm
 
@@ -20,6 +20,8 @@ distance = [12.8, 11.8, 10.8, 9.8, 7.29, 5.78, 4.76, 3.672, 3.06]
 omegas = []
 omega_errs = []
 
+results = []
+
 # print(distance[0])
 # print(beam_spots)
 
@@ -27,4 +29,11 @@ for d, ang in tqdm(zip(distance,angle), total=len(angle)):
     omega,omega_err,_,_ = solid_angle(beam_spots, R_Foil, d, ang)
     omegas.append(omega)
     omega_errs.append(omega_err)
+    results.append((ang,d,omega,omega_err))
 
+# Print aligned table
+header = f"{'Angle (deg)':>12} | {'Distance (cm)':>14} | {'Omega (sr)':>14} | {'Error (sr)':>14}"
+print("\n" + header)
+print("-" * len(header))
+for ang, dist, omega, err in results:
+    print(f"{ang:>12.1f} | {dist:>14.3f} | {omega:>14.6e} | {err:>14.6e}")
