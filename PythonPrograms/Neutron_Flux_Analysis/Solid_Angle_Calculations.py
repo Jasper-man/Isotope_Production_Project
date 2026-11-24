@@ -1,0 +1,30 @@
+from Neutron_Flux_Analysis.abnormal_shape_SA import squash_beam as solid_angle
+import numpy as np
+from tqdm import tqdm
+
+"""
+I am going to go through the solid angles for the foil packs and establish a value so that we can determine the relationship between the
+neutron flux and the solid angle
+"""
+
+# Now we can approximate the solid angle from a disk to diak approximation which will be converted to a geometric flux conversion factor
+beam_spot_csv = '/home/james_andrew/Python_Projects/Pb-212/August_BeamTime/PythonPrograms/Neutron_Flux_Analysis/small_spot.csv'
+data = np.genfromtxt(beam_spot_csv, delimiter=",", skip_header=1)
+
+# Convert array to a list of tuples
+beam_spots = [tuple(row) for row in data]
+
+R_Foil = 0.5029
+angle = [0, 7, 10, 15, 20, 25, 30, 45, 60]
+distance = [12.8, 11.8, 10.8, 9.8, 7.29, 5.78, 4.76, 3.672, 3.06]
+omegas = []
+omega_errs = []
+
+# print(distance[0])
+# print(beam_spots)
+
+for d, ang in tqdm(zip(distance,angle), total=len(angle)):
+    omega,omega_err,_,_ = solid_angle(beam_spots, R_Foil, d, ang)
+    omegas.append(omega)
+    omega_errs.append(omega_err)
+
