@@ -31,6 +31,14 @@ for d, ang in tqdm(zip(distance,angle), total=len(angle)):
     omega_errs.append(omega_err)
     results.append((ang,d,omega,omega_err))
 
+# This will be for the current run with the PLA foil holder
+
+f_distance = 1.5
+f_angle = 0
+f_omega,f_omega_err,_,_ = solid_angle(beam_spots,R_Foil,f_distance,f_angle)
+results.append((f_angle,f_distance,f_omega,f_omega_err))
+
+
 # Print aligned table
 header = f"{'Angle (deg)':>12} | {'Distance (cm)':>14} | {'Omega (sr)':>14} | {'Error (sr)':>14}"
 print("\n" + header)
