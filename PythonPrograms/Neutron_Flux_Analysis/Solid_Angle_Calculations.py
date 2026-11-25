@@ -1,4 +1,5 @@
 from abnormal_shape_SA import squash_beam as solid_angle
+from shapely.geometry import Polygon
 import numpy as np
 from tqdm import tqdm
 
@@ -14,6 +15,12 @@ data = np.genfromtxt(beam_spot_csv, delimiter=",", skip_header=1)
 # Convert array to a list of tuples
 beam_spots = [tuple(row) for row in data]
 
+# Beam spot test
+poly = Polygon(beam_spots)
+print("Columns per row:", len(beam_spots[0]))
+print("Bounds (minx, miny, maxx, maxy):", poly.bounds)
+print("Centroid:", poly.centroid.x, poly.centroid.y)
+
 R_Foil = 0.5029
 angle = [0, 7, 10, 15, 20, 25, 30, 45, 60]
 distance = [12.8, 11.8, 10.8, 9.8, 7.29, 5.78, 4.76, 3.672, 3.06]
@@ -25,23 +32,23 @@ results = []
 # print(distance[0])
 # print(beam_spots)
 
-for d, ang in tqdm(zip(distance,angle), total=len(angle)):
-    omega,omega_err,_,_ = solid_angle(beam_spots, R_Foil, d, ang)
-    omegas.append(omega)
-    omega_errs.append(omega_err)
-    results.append((ang,d,omega,omega_err))
+# for d, ang in tqdm(zip(distance,angle), total=len(angle)):
+#     omega,omega_err,_,_ = solid_angle(beam_spots, R_Foil, d, ang)
+#     omegas.append(omega)
+#     omega_errs.append(omega_err)
+#     results.append((ang,d,omega,omega_err))
 
-# This will be for the current run with the PLA foil holder
+# # This will be for the current run with the PLA foil holder
 
-f_distance = 1.5
-f_angle = 0
-f_omega,f_omega_err,_,_ = solid_angle(beam_spots,R_Foil,f_distance,f_angle)
-results.append((f_angle,f_distance,f_omega,f_omega_err))
+# f_distance = 1.5
+# f_angle = 0
+# f_omega,f_omega_err,_,_ = solid_angle(beam_spots,R_Foil,f_distance,f_angle)
+# results.append((f_angle,f_distance,f_omega,f_omega_err))
 
 
-# Print aligned table
-header = f"{'Angle (deg)':>12} | {'Distance (cm)':>14} | {'Omega (sr)':>14} | {'Error (sr)':>14}"
-print("\n" + header)
-print("-" * len(header))
-for ang, dist, omega, err in results:
-    print(f"{ang:>12.1f} | {dist:>14.3f} | {omega:>14.6e} | {err:>14.6e}")
+# # Print aligned table
+# header = f"{'Angle (deg)':>12} | {'Distance (cm)':>14} | {'Omega (sr)':>14} | {'Error (sr)':>14}"
+# print("\n" + header)
+# print("-" * len(header))
+# for ang, dist, omega, err in results:
+#     print(f"{ang:>12.1f} | {dist:>14.3f} | {omega:>14.6e} | {err:>14.6e}")
